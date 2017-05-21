@@ -52,6 +52,17 @@ extension InputStreamHandle: FileHandling {
         return Data(bytes: buffer)
     }
     
+    open func peakReadData(ofLength length: Int) -> Data {
+        let newOffset = fileOffset + length
+        readMissingBytes(to: newOffset)
+        let readableLength = readableBytes(for: newOffset)
+        let range = NSRange(location: Int(fileOffset), length: readableLength)
+        var buffer = [UInt8](repeating: 0, count: readableLength)
+        data.getBytes(&buffer, range: range)
+        // fileOffset = fileOffset + readableLength
+        return Data(bytes: buffer)
+    }
+    
     open func seek(toFileOffset offset: UInt64) {
         fileOffset = Int(offset)
     }

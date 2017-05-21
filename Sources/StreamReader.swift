@@ -90,6 +90,36 @@ open class StreamReader  {
         return nil
     }
     
+    /// Returns next line, or nil on EOF. / won't offset the file
+    open func peakNextLine() -> String? {
+        precondition(fileHandle != nil, "Attempt to read from closed file")
+        
+        // Reads data chunks from file until a line delimiter is found:
+        while !atEof {
+            if let range = buffer.range(of: delimiterData) {
+                // Convert complete line (excluding the delimiter) to a string:
+                let line = String(data: buffer.subdata(in: 0..<range.lowerBound), encoding: encoding)
+                // Remove line (and the delimiter) from the buffer:
+                buffer.removeSubrange(0..<range.upperBound)
+                return line
+            }
+            let tmpData = fileHandle!.peakReadData(ofLength: chunkSize)
+            if tmpData.count > 0 {
+                buffer.append(tmpData)
+            } else {
+                // EOF or read error.
+                atEof = true
+                if buffer.count > 0 {
+                    // Buffer contains last line in file (not terminated by delimiter).
+                    let line = String(data: buffer as Data, encoding: encoding)
+                    buffer.count = 0
+                    return line
+                }
+            }
+        }
+        return nil
+    }
+    
     /// Starts reading from the beginning of file.
     open func rewind() -> Void {
         fileHandle!.seek(toFileOffset: 0)
